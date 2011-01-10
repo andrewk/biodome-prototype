@@ -5,24 +5,6 @@
            Copyright 2010 Andrew Krespanis - http://leftjustified.net/
 -------------------------------------------------------------------------------
 
-==============[ Flakey dodgy hyper-alpha release, August 2010. ]===============
-
-WHY?___________________________________________________________________________
-
-1. I want to monitor and maintain my sub-tropical bonsai over winter in a cold
-climate. Heating, controlled ventilation, etc.
-
-2. Possums utterly devour any new vegetables we plant, but tend to leave 
-established plants alone in favor of seedlings. Having an environment for
-accellerated growth of seedlings and propagation of cuttings would allow me to 
-keep my fruit and veg off their menu.
-
-3. Existing similar projects either didn't meet my needs or my OCD software
-developer twitch. I wanted my system to be as extensible and configurable as I 
-could manage, which meant object-oriented design with defined interfaces and
-iterable object collections. 
-
-
 OVERVIEW_______________________________________________________________________
 
 Biodome is a collection of Devices and Sensors, defined and combined in any
@@ -43,7 +25,6 @@ Sensor:
 	method to instruct the sensor to collect new data. Each Sensor can only 
 	return a single value, which must be a float.
 	
-
 
 REQUIREMENTS___________________________________________________________________
 

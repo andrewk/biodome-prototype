@@ -7,34 +7,46 @@
 #include "WProgram.h"
 
 //==========================================================================//
+//  Environment
+//==========================================================================//
+struct Environment
+{
+  int target;
+  int over;
+  int extremeOver;
+  int under;
+};
+
+
+//==========================================================================//
 //  Device
 //==========================================================================//
 class Device
-{ 	
+{
   public:
 	char * name;
 	uint8_t status; // 0=off;1=on
   uint8_t queuedStatus; // 0=off;1=on
   byte pin;
-	
+
 	Device(byte pin);
 	void turnOn();
 	void turnOff();
   void nextStatus();
-    
+
 };
 
 //==========================================================================//
 // Sensor
 //==========================================================================//
-class Sensor 
+class Sensor
 {
     public:
       char * name;
 		  virtual void update() {};
       inline void begin() {};
-      inline float read() { return _lastValue;}; 
-    protected:		
+      inline float read() { return _lastValue;};
+    protected:
       float _lastValue;
 };
 
@@ -48,10 +60,10 @@ class FacadeSensor : public Sensor
     void update();
     void updateExternal(float input);
 };
-//==========================================================================// 
+//==========================================================================//
 // TEMPERATURE sensor - TMP36
 //==========================================================================//
-class TemperatureSensor : public Sensor 
+class TemperatureSensor : public Sensor
 {
     public:
 		  TemperatureSensor(byte pin);
@@ -71,10 +83,10 @@ class SoilMoistureSensor : public Sensor
     byte dPin;
 };
 
-//==========================================================================// 
+//==========================================================================//
 // LIGHT sensor - LDR
 //==========================================================================//
-class LightSensor : public Sensor 
+class LightSensor : public Sensor
 {
     public:
 		  LightSensor(byte aPin);

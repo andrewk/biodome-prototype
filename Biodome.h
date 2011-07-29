@@ -23,17 +23,17 @@ struct Environment
 //==========================================================================//
 class Device
 {
-  public:
-	char * name;
-	uint8_t status; // 0=off;1=on
-  uint8_t queuedStatus; // 0=off;1=on
-  byte pin;
+	public:
+		char * name;
+		uint8_t status; // 0=off;1=on
+  		uint8_t queuedStatus; // 0=off;1=on
+  		byte pin;
+		boolean inverted;
 
-	Device(byte pin);
-	void turnOn();
-	void turnOff();
-  void nextStatus();
-
+		Device(byte pin, boolean invertedSwitching);
+		void turnOn();
+		void turnOff();
+  		void nextStatus();
 };
 
 //==========================================================================//
@@ -41,13 +41,13 @@ class Device
 //==========================================================================//
 class Sensor
 {
-    public:
-      char * name;
-		  virtual void update() {};
-      inline void begin() {};
-      inline float read() { return _lastValue;};
+	public:
+    	char * name;
+		virtual void update() {};
+      	inline void begin() {};
+      	inline float read() { return _lastValue;};
     protected:
-      float _lastValue;
+    	float _lastValue;
 };
 
 //==========================================================================//
@@ -56,19 +56,19 @@ class Sensor
 // Provide Sensor API to output from an external class or library
 class FacadeSensor : public Sensor
 {
-  public:
-    void update();
-    void updateExternal(float input);
+	public:
+    	void update();
+    	void updateExternal(float input);
 };
 //==========================================================================//
 // TEMPERATURE sensor - TMP36
 //==========================================================================//
 class TemperatureSensor : public Sensor
 {
-    public:
-		  TemperatureSensor(byte pin);
-      void update();
-      byte pin;
+	public:
+		TemperatureSensor(byte pin);
+      	void update();
+		byte pin;
 };
 
 //==========================================================================//
@@ -76,11 +76,11 @@ class TemperatureSensor : public Sensor
 //==========================================================================//
 class SoilMoistureSensor : public Sensor
 {
-  public:
-    SoilMoistureSensor(byte aPin, byte dPin);
-    void update();
-    byte aPin;
-    byte dPin;
+	public:
+    	SoilMoistureSensor(byte aPin, byte dPin);
+   		void update();
+   		byte aPin;
+    	byte dPin;
 };
 
 //==========================================================================//
@@ -88,10 +88,10 @@ class SoilMoistureSensor : public Sensor
 //==========================================================================//
 class LightSensor : public Sensor
 {
-    public:
-		  LightSensor(byte aPin);
-      void update();
-      byte aPin;
+	public:
+		LightSensor(byte aPin);
+    	void update();
+   		byte aPin;
 };
 
 

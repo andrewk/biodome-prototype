@@ -5,28 +5,27 @@
 //==========================================================================//
 // Model representation of a controlled relay with boolean state
 //==========================================================================//
-Device::Device(byte uPin) 
+Device::Device(byte uPin, boolean invertedSwitching)
 {
   pin = uPin;
-  
+  inverted = invertedSwitching;
   // set defaults
   byte status = STATUS_OFF;
   byte queuedStatus = STATUS_OFF;
 }
 
 // turn off device via relay
-void Device::turnOff() 
+void Device::turnOff()
 {
-  //Serial.println('turning OFF pin ');
+  inverted ? digitalWrite(pin, HIGH) : digitalWrite(pin, LOW);
   status = 0;
-  digitalWrite(pin, LOW);
 }
 
 // turn on device via relay
-void Device::turnOn() 
+void Device::turnOn()
 {
-  //Serial.println(pin);
-  digitalWrite(pin, HIGH);
+  // support weird relay board from futurlec that switches on with logic 0
+  inverted ? digitalWrite(pin, LOW) : digitalWrite(pin, HIGH);
   status = 1;
 }
 
@@ -61,57 +60,19 @@ TemperatureSensor::TemperatureSensor(byte uPin)
 }
 
 //avarage a temperature and update _lastValue
-void TemperatureSensor::update() 
+void TemperatureSensor::update()
 {
-  
   float sum = 0;
   byte iterations = 6;
-  for (byte i=0; i <= iterations; i++) 
+  for (byte i=0; i <= iterations; i++)
   {
-     int reading = analogRead(pin);  
-     float voltage = reading * TEMP_VREF / 1024; 
+     int reading = analogRead(pin);
+     float voltage = reading * TEMP_VREF / 1024;
      sum +=  (voltage - 0.5) * 100;
      delay(10);
   }
 
   _lastValue = sum / iterations;
-  
-/*
-   int reading = analogRead(pin);  
-   float voltage = reading * TEMP_VREF / 1024; 
-   _lastValue = (voltage - 0.5) * 100 ;
-*/
 }
 
-//==========================================================================//
-// Soil Moisture Sensor - 5V across two nails in the soil. 
-//   Digital pin sends voltage
-//   Analog pin reads
-//==========================================================================//
-SoilMoistureSensor::SoilMoistureSensor(byte analogPin, byte digitalPin)
-{
-  aPin = analogPin;
-  dPin = digitalPin;
-  pinMode(dPin, OUTPUT);
-}
 
-void SoilMoistureSensor::update()
-{
-  digitalWrite(dPin, HIGH);
-  _lastValue = analogRead(aPin);
-  digitalWrite(dPin, LOW);
-}
-
-//==========================================================================//
-// Light sensor - uses an LDR to give confirmation of light
-//==========================================================================//
-
-LightSensor::LightSensor(byte analogPin)
-{
-  aPin = analogPin;
-}
-
-void LightSensor::update()
-{
-  _lastValue = analogRead(aPin);
-}

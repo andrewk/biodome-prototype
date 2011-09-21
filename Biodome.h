@@ -17,7 +17,6 @@ struct Environment
   int under;
 };
 
-
 //==========================================================================//
 //  Device
 //==========================================================================//
@@ -30,7 +29,7 @@ class Device
   		byte pin;
 		boolean inverted;
 
-		Device(byte pin, boolean invertedSwitching);
+		void configure(char* deviceName, byte outPin, boolean isControlInverted);
 		void turnOn();
 		void turnOff();
   		void nextStatus();
@@ -44,10 +43,12 @@ class Sensor
 	public:
     	char * name;
 		virtual void update() {};
+		void configure(char * sensorName, float measurementCompensation);
       	inline void begin() {};
-      	inline float read() { return _lastValue;};
+      	inline float read() { return _lastValue + _compensation;};
     protected:
     	float _lastValue;
+		float _compensation;
 };
 
 //==========================================================================//
@@ -67,6 +68,17 @@ class TemperatureSensor : public Sensor
 {
 	public:
 		TemperatureSensor(byte pin);
+      	void update();
+		byte pin;
+};
+
+//==========================================================================//
+// TEMPERATURE sensor - TMP36
+//==========================================================================//
+class LM335TemperatureSensor : public Sensor
+{
+	public:
+		LM335TemperatureSensor(byte pin);
       	void update();
 		byte pin;
 };

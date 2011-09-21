@@ -70,7 +70,7 @@ void setup()
     Fans.name = "Circulation Fans";
     Heater.name = "Heater";
     FanBoost.name = "Fan Overdrive";
-    
+
     pinMode(PrimaryLight.pin, OUTPUT);
     pinMode(SecondaryLight.pin, OUTPUT);
     pinMode(Fans.pin, OUTPUT);
@@ -89,7 +89,7 @@ void loop()
   // read STATE from schedule file
   uint8_t* state = getStateFromSchedule();
   Environment env = getEnvironmentForState(state[1]);
-  
+
   // queue new Device status
   switch (state[1])
   {
@@ -97,21 +97,21 @@ void loop()
       PrimaryLight.queuedStatus = 0;
       SecondaryLight.queuedStatus = 0;
       lcd.print("Night      ");
-      
+
     break;
-    
+
     case 2: // sunrise
        PrimaryLight.queuedStatus = 0;
        SecondaryLight.queuedStatus = 1;
        lcd.print("Sunrise    ");
     break;
-    
+
     case 3: // day
       PrimaryLight.queuedStatus = 1;
       SecondaryLight.queuedStatus = 1;
       lcd.print("Day        ");
     break;
-    
+
     case 4: // sunset
       PrimaryLight.queuedStatus = 0;
       SecondaryLight.queuedStatus = 0;
@@ -120,27 +120,27 @@ void loop()
   }
 
   // update sensors
-  for (byte i = 0; i < COUNT_SENSORS; i++) 
+  for (byte i = 0; i < COUNT_SENSORS; i++)
   {
     Sensors[i]->update();
   }
-  
+
   // populate facade sensors
   //sht.measure(&sht_temp, &sht_humidity, &sht_dewpoint);
   //TempMain.updateExternal(sht_temp);
   //Humidity.updateExternal(sht_humidity);
   //DewPoint.updateExternal(sht_dewpoint);
-  
+
   // process Device status overrides for Coolers and Heaters
-  // set defaults for environmental controllers 
+  // set defaults for environmental controllers
   Fans.queuedStatus = 0;
   FanBoost.queuedStatus = 0;
   Heater.queuedStatus = 0;
-  
+
   // WAY too hot
   if (TempMain.read() >= env.extremeOver)
   {
-    Fans.queuedStatus = 1; 
+    Fans.queuedStatus = 1;
     FanBoost.queuedStatus = 1;
   }
   // too hot
@@ -150,17 +150,17 @@ void loop()
   }
   else if (TempMain.read() >= env.extremeOver)
   {
-    Heater.queuedStatus = 1; 
+    Heater.queuedStatus = 1;
   }
-  
+
   // iterate through Devices, enable queued status
   // this is done to minimize relay switching in the cases where a sensor override
   // event causes a different status than scheduled
-  for (byte ic = 0; ic < COUNT_DEVICES; ic++) 
+  for (byte ic = 0; ic < COUNT_DEVICES; ic++)
   {
-    Devices[ic]->nextStatus(); 
+    Devices[ic]->nextStatus();
   }
-  
+
   // finish updating LCD
   DateTime now = RTC.now();
   lcd.print(now.hour(), DEC);
@@ -178,11 +178,11 @@ void loop()
   // ambient
   lcd.print(TempAmbient.read());
   lcd.print("c");
-  lcd.print(HumidityAmbient.read());  
+  lcd.print(HumidityAmbient.read());
   lcd.print("%)");
-  
+
   // write environment data to CSV
-  
+
 }
 
 
@@ -193,9 +193,9 @@ Environment getEnvironmentForState(uint8_t state)
     case 1:
         // night
         return (Environment) {
-            20,
-            6,
-            10,
+            24,
+            4,
+            8,
             2
         };
         break;
@@ -203,9 +203,9 @@ Environment getEnvironmentForState(uint8_t state)
     case 2:
         // sunrise
         return (Environment) {
-            21,
+            24,
             4,
-            5,
+            6,
             6
         };
         break;
@@ -213,20 +213,20 @@ Environment getEnvironmentForState(uint8_t state)
     case 3:
         // day
         return (Environment) {
-            24,
+            26,
             3,
             6,
-            4
+            6
         };
         break;
 
     case 4:
         // sunset
         return (Environment) {
-            23,
+            26,
             5,
             7,
-            3
+            5
         };
         break;
     }
@@ -279,7 +279,7 @@ void createAndOpenLogFile()
 }
 
 /**
- * Helper function for inserting both UNIX timestamp and 
+ * Helper function for inserting both UNIX timestamp and
  * human-readable forms of current time in CSV format
  * uses "file" global var to save 300 bytes in binary size
  */
@@ -299,21 +299,21 @@ void writeTimestampToFile()
   file.print(now.minute(), DEC);
   file.print(":");
   file.print(now.second(), DEC);
-  file.print(", ");  
+  file.print(", ");
 }
 
 
 uint8_t* getStateFromSchedule()
 {
   uint8_t * state;
-  
+
   DateTime now = RTC.now();
   int hour = (int)now.hour();
 
   // 2 chars per line, one for state, one line breakd
   int cursorPos = 2 * (hour-1);
   if (!file.open(root, "SCHEDULE.TXT", O_READ))
-  { 
+  {
      Serial.println("e: open schedule");
   }
   // move the file cursor to the desired point in the file

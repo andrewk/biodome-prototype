@@ -5,20 +5,24 @@
 //==========================================================================//
 // Model representation of a controlled relay with boolean state
 //==========================================================================//
-Device::Device(byte uPin, boolean invertedSwitching)
+
+void Device::configure(char * deviceName, byte outPin, boolean isControlInverted)
 {
-  pin = uPin;
-  inverted = invertedSwitching;
-  // set defaults
-  byte status = STATUS_OFF;
-  byte queuedStatus = STATUS_OFF;
+	char * name = deviceName;
+	byte pin = outPin;
+	pinMode(pin, OUTPUT);
+	boolean inverted = isControlInverted;
+
+	// set defaults
+  	byte status = STATUS_OFF;
+  	byte queuedStatus = STATUS_OFF;
 }
 
 // turn off device via relay
 void Device::turnOff()
 {
   inverted ? digitalWrite(pin, HIGH) : digitalWrite(pin, LOW);
-  status = 0;
+  status = STATUS_OFF;
 }
 
 // turn on device via relay
@@ -26,21 +30,27 @@ void Device::turnOn()
 {
   // support weird relay board from futurlec that switches on with logic 0
   inverted ? digitalWrite(pin, LOW) : digitalWrite(pin, HIGH);
-  status = 1;
+  status = STATUS_ON;
 }
 
 void Device::nextStatus()
 {
-  // no idea wtf is going on here. Need to come back to it
-  if(queuedStatus == 49)
+  if(queuedStatus == STATUS_ON)
   {
     turnOn();
   }
-  else if(queuedStatus == 48)
+  else if(queuedStatus == STATUS_OFF)
   {
     turnOff();
   }
 }
+
+void Sensor::configure(char * sensorName, float measurementCompensation)
+{
+	char * name = sensorName;
+	float _compensation = measurementCompensation;
+}
+
 
 void FacadeSensor::update(){}
 void FacadeSensor::updateExternal(float input)
@@ -75,4 +85,29 @@ void TemperatureSensor::update()
   _lastValue = sum / iterations;
 }
 
+
+//==========================================================================//
+// LM335 Temperature sensor
+//==========================================================================//
+
+LM335TemperatureSensor::LM335TemperatureSensor(byte uPin)
+{
+	pin = uPin;
+}
+
+//avarage a temperature and update _lastValue
+void LM335TemperatureSensor::update()
+{
+	float val = 0;
+	float val2 = 0;
+	float deg = 0;
+	float celcius = 0;
+
+	val = analogRead(pin); // read value from the sensor
+	val2 = val * 0.00489; // take SENSOR value and multiply it by 4.89mV
+	deg = val2 * 100; // multiply by 100 to get degrees in K
+
+	_lastValue = deg - 273.15; // subtract absolute zero to get degrees celcius
+
+}
 

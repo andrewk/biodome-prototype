@@ -9,22 +9,20 @@
 void Device::configure(char * deviceName, int outPin, boolean isControlInverted)
 {
 	char * name = deviceName;
-	int pin = outPin;
+	pin = outPin;
 	pinMode(pin, OUTPUT);
 	boolean inverted = isControlInverted;
 
 	// set defaults
   int status = 0;
   int queuedStatus = 0;
-  Serial.print("Status is");
-  Serial.println(status);
 }
 
 // turn off device via relay
 void Device::turnOff()
 {
-  //inverted ? digitalWrite(pin, HIGH) : digitalWrite(pin, LOW);
-  digitalWrite(pin, LOW);
+  inverted ? digitalWrite(pin, HIGH) : digitalWrite(pin, LOW);
+  //digitalWrite(pin, LOW);
   status = 0;
 }
 
@@ -32,11 +30,9 @@ void Device::turnOff()
 void Device::turnOn()
 {
   // support weird relay board from futurlec that switches on with logic 0
- // inverted ? digitalWrite(pin, LOW) : digitalWrite(pin, HIGH);
-  digitalWrite(pin, 1);
+  inverted ? digitalWrite(pin, LOW) : digitalWrite(pin, HIGH);
+  //digitalWrite(pin, 1);
   status = 1;
-  Serial.println(status);
-  Serial.println(HIGH);
 }
 
 void Device::nextStatus()
@@ -54,7 +50,7 @@ void Device::nextStatus()
 void Sensor::configure(char * sensorName, float measurementCompensation)
 {
 	char * name = sensorName;
-	float _compensation = measurementCompensation;
+	_compensation = measurementCompensation;
 }
 
 

@@ -13,8 +13,8 @@ DHT dht(DHTPIN, DHTTYPE);
 void setup()
 {
     Serial.begin(9600);
-    Temp.name = "Temperature";
-    Humidity.name = "Humidity";
+	Temp.configure("Temperature", -0.5);
+    Humidity.configure("Humidity", -5);
     dht.begin();
 }
 

@@ -25,14 +25,14 @@ class Device
 	public:
 		char * name;
 		uint8_t status; // 0=off;1=on
-  		uint8_t queuedStatus; // 0=off;1=on
-  		byte pin;
+  	uint8_t queuedStatus; // 0=off;1=on
+    int pin;
 		boolean inverted;
 
-		void configure(char* deviceName, byte outPin, boolean isControlInverted);
+		void configure(char* deviceName, int outPin, boolean isControlInverted);
 		void turnOn();
 		void turnOff();
-  		void nextStatus();
+  	void nextStatus();
 };
 
 //==========================================================================//
@@ -41,13 +41,13 @@ class Device
 class Sensor
 {
 	public:
-    	char * name;
+    char * name;
 		virtual void update() {};
 		void configure(char * sensorName, float measurementCompensation);
-      	inline void begin() {};
-      	inline float read() { return _lastValue + _compensation;};
+    inline void begin() {};
+  	inline float read() { return _lastValue + _compensation;};
     protected:
-    	float _lastValue;
+  	float _lastValue;
 		float _compensation;
 };
 
@@ -58,8 +58,8 @@ class Sensor
 class FacadeSensor : public Sensor
 {
 	public:
-    	void update();
-    	void updateExternal(float input);
+    void update();
+  	void updateExternal(float input);
 };
 //==========================================================================//
 // TEMPERATURE sensor - TMP36
@@ -68,7 +68,7 @@ class TemperatureSensor : public Sensor
 {
 	public:
 		TemperatureSensor(byte pin);
-      	void update();
+    void update();
 		byte pin;
 };
 

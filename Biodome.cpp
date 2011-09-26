@@ -6,40 +6,46 @@
 // Model representation of a controlled relay with boolean state
 //==========================================================================//
 
-void Device::configure(char * deviceName, byte outPin, boolean isControlInverted)
+void Device::configure(char * deviceName, int outPin, boolean isControlInverted)
 {
 	char * name = deviceName;
-	byte pin = outPin;
+	int pin = outPin;
 	pinMode(pin, OUTPUT);
 	boolean inverted = isControlInverted;
 
 	// set defaults
-  	byte status = STATUS_OFF;
-  	byte queuedStatus = STATUS_OFF;
+  int status = 0;
+  int queuedStatus = 0;
+  Serial.print("Status is");
+  Serial.println(status);
 }
 
 // turn off device via relay
 void Device::turnOff()
 {
-  inverted ? digitalWrite(pin, HIGH) : digitalWrite(pin, LOW);
-  status = STATUS_OFF;
+  //inverted ? digitalWrite(pin, HIGH) : digitalWrite(pin, LOW);
+  digitalWrite(pin, LOW);
+  status = 0;
 }
 
 // turn on device via relay
 void Device::turnOn()
 {
   // support weird relay board from futurlec that switches on with logic 0
-  inverted ? digitalWrite(pin, LOW) : digitalWrite(pin, HIGH);
-  status = STATUS_ON;
+ // inverted ? digitalWrite(pin, LOW) : digitalWrite(pin, HIGH);
+  digitalWrite(pin, 1);
+  status = 1;
+  Serial.println(status);
+  Serial.println(HIGH);
 }
 
 void Device::nextStatus()
 {
-  if(queuedStatus == STATUS_ON)
+  if(queuedStatus == 1)
   {
     turnOn();
   }
-  else if(queuedStatus == STATUS_OFF)
+  else if(queuedStatus == 0)
   {
     turnOff();
   }

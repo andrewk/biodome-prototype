@@ -6,7 +6,7 @@ Device Relay;
 void setup()
 {
   Serial.begin(9600);
-  Relay.configure("Test device", 13, false);
+  Relay.configure("Test device", 13, true);
 }
 
 void loop()
@@ -16,7 +16,7 @@ void loop()
   Relay.nextStatus();
   Serial.print(Relay.status);
   Serial.println("on!");
-  delay(1000);
+  delay(6000);
 
   Serial.print("Turn off...");
   Relay.queuedStatus = 0;

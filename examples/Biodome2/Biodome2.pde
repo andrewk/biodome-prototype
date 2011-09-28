@@ -1,6 +1,7 @@
 #include <Wire.h>
 #include <RTClib.h>
 #include <SdFat.h>
+#include <DHT.h>
 #include <Biodome.h>
 #include <LiquidCrystal_I2C.h>
 
@@ -34,54 +35,58 @@ char syslog[13] = "SYSTEM00.CSV";
 int loopCounter = 0;
 
 // Devices
-Device PrimaryLight(1, true);
-Device SecondaryLight(7, true);
-Device Fans(2, true);
-Device Heater(3, true);
-Device FanBoost(6, true);
+Device PrimaryLight;
+Device SecondaryLight;
+Device Fans;
+Device Heater;
+Device FanBoost;
 Device * Devices[] = { &PrimaryLight, &SecondaryLight, &Fans, &Heater, &FanBoost };
 
 // Sensors
-TemperatureSensor TempAmbient(1);
-TemperatureSensor TempControlRoom(2);
+TemperatureSensor TempControlRoom(0);
 FacadeSensor TempMain;
 FacadeSensor HumidityMain;
+FacadeSensor TempAmbient;
 FacadeSensor HumidityAmbient;
-Sensor * Sensors[] = { &TempAmbient, &TempControlRoom, &TempMain, &HumidityMain, &HumidityAmbient};
+Sensor * Sensors[] = { &TempMain, &HumidityMain, &TempAmbient, &HumidityAmbient, &TempControlRoom};
+
+// DHT temp/humidity sensors (DHT lib)
+DHT dht_ambient(1, DHT22);
+DHT dht_internal(2, DHT22);
 
 void setup()
 {
-    Serial.begin(9600);
-    Wire.begin();
-    RTC.begin();
-    lcd.init();
-    lcd.backlight();
+  Serial.begin(9600);
+  Wire.begin();
+  RTC.begin();
+  dht_ambient.begin();
+  dht_internal.begin();
+  lcd.init();
+  lcd.backlight();
 
-    // Uncomment following line to sync RTC time to compile time
-    //RTC.adjust(DateTime(__DATE__, __TIME__));
-    if (!RTC.isrunning())
-    {
-        Serial.println("CRITICAL ERROR: RTC is NOT running");
-    }
+  // Uncomment following line to sync RTC time to compile time
+  //RTC.adjust(DateTime(__DATE__, __TIME__));
+  if (!RTC.isrunning())
+  {
+      Serial.println("CRITICAL ERROR: RTC is NOT running");
+  }
 
-    // config devices
-    PrimaryLight.name = "HPS Light";
-    SecondaryLight.name = "LED Lights";
-    Fans.name = "Circulation Fans";
-    Heater.name = "Heater";
-    FanBoost.name = "Fan Overdrive";
+  // config devices
+  PrimaryLight.configure("HPS Light", 2, true);
+  SecondaryLight.configure("LED Lights", 3, true);
+  Fans.configure("Circulation Fans", 6, true);
+  Heater.configure("Heater", 7, true);
+  FanBoost.configure("Fan Overdrive", 8, true);
 
-    pinMode(PrimaryLight.pin, OUTPUT);
-    pinMode(SecondaryLight.pin, OUTPUT);
-    pinMode(Fans.pin, OUTPUT);
-    pinMode(FanBoost.pin, OUTPUT);
-    pinMode(Heater.pin, OUTPUT);
+  // config sensors
+  TempMain.configure("Temperature", 0); // name, compensation
+  HumidityMain.configure("Humidity", 0);
+  HumidityAmbient.configure("Ambient Humidity", -5.0); 
+  TempAmbient.configure("Ambient Temp", -0.5);
+  TempControlRoom.configure("Control Room Temp", 0); // name, pin, compensation
 
-    // name sensors
-    TempAmbient.name = "Ambient Temp";
-    TempControlRoom.name = "Circuit Box Temp";
-    TempMain.name = "Temperature";
-    HumidityMain.name = "Humidity";
+  // delay to give DHT sensors time to warm up (datasheet claims up to 30 seconds!)
+  //delay(10000);
 }
 
 void loop()
@@ -126,10 +131,10 @@ void loop()
   }
 
   // populate facade sensors
-  //sht.measure(&sht_temp, &sht_humidity, &sht_dewpoint);
-  //TempMain.updateExternal(sht_temp);
-  //Humidity.updateExternal(sht_humidity);
-  //DewPoint.updateExternal(sht_dewpoint);
+  TempMain.updateExternal(dht_internal.readTemperature());
+  HumidityMain.updateExternal(dht_internal.readHumidity());
+  TempAmbient.updateExternal(dht_ambient.readTemperature());
+  HumidityAmbient.updateExternal(dht_ambient.readHumidity());
 
   // process Device status overrides for Coolers and Heaters
   // set defaults for environmental controllers
@@ -190,7 +195,7 @@ Environment getEnvironmentForState(uint8_t state)
  {
     switch (state)
     {
-    case 1:
+      case 1:
         // night
         return (Environment) {
             24,
@@ -198,9 +203,9 @@ Environment getEnvironmentForState(uint8_t state)
             8,
             2
         };
-        break;
+      break;
 
-    case 2:
+      case 2:
         // sunrise
         return (Environment) {
             24,
@@ -208,9 +213,9 @@ Environment getEnvironmentForState(uint8_t state)
             6,
             6
         };
-        break;
+      break;
 
-    case 3:
+      case 3:
         // day
         return (Environment) {
             26,
@@ -218,9 +223,9 @@ Environment getEnvironmentForState(uint8_t state)
             6,
             6
         };
-        break;
+      break;
 
-    case 4:
+      case 4:
         // sunset
         return (Environment) {
             26,
@@ -228,14 +233,13 @@ Environment getEnvironmentForState(uint8_t state)
             7,
             5
         };
-        break;
+      break;
     }
 }
 
 
 void createAndOpenLogFile()
 {
-
     // initialize the SD card
     if (!card.init()) Serial.println("e:card.init");
     if (!volume.init(card)) Serial.println("e:volume.init");
@@ -257,10 +261,9 @@ void createAndOpenLogFile()
         Serial.println("CRITICAL ERROR: Failed to create syslog file");
     }
     // add column headers
-    file.print("Timestamp");
-    file.print(", ");
-    file.print("Time");
-    file.print(", ");
+    file.print("timestamp, ");
+    file.print("time, ");
+    file.print("state, ");
     for (byte i = 0; i < COUNT_SENSORS; i++)
     {
         file.print(Sensors[i]->name);

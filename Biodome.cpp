@@ -11,7 +11,7 @@ void Device::configure(char * deviceName, int outPin, boolean isControlInverted)
 	char * name = deviceName;
 	pin = outPin;
 	pinMode(pin, OUTPUT);
-	boolean inverted = isControlInverted;
+	inverted = isControlInverted;
 
 	// set defaults
   int status = 0;

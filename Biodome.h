@@ -29,7 +29,7 @@ class Device
     int pin;
 		boolean inverted;
 
-		void configure(char* deviceName, int outPin, boolean isControlInverted);
+		void configure(int outPin, boolean isControlInverted);
 		void turnOn();
 		void turnOff();
   	void nextStatus();
@@ -79,7 +79,7 @@ class LM335TemperatureSensor : public Sensor
 {
 	public:
 		LM335TemperatureSensor(byte pin);
-      	void update();
+    void update();
 		byte pin;
 };
 
@@ -89,10 +89,10 @@ class LM335TemperatureSensor : public Sensor
 class SoilMoistureSensor : public Sensor
 {
 	public:
-    	SoilMoistureSensor(byte aPin, byte dPin);
-   		void update();
-   		byte aPin;
-    	byte dPin;
+    SoilMoistureSensor(byte aPin, byte dPin);
+  	void update();
+  	byte aPin;
+    byte dPin;
 };
 
 //==========================================================================//

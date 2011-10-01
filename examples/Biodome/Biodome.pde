@@ -14,7 +14,9 @@
 #define COUNT_SENSORS 5
 #define COUNT_DEVICES 5
 #define LOOP_INTERVAL_MINUTES 5
-// how many times we should iterate through the loop before logging the environment data to CSV
+
+// how many times we should iterate through the loop
+// before logging the environment data to CSV
 #define LOOPS_PER_LOG 2
 
 // Real Time Clock object
@@ -29,6 +31,10 @@ SdFile file;
 // set the LCD address to 0x27 for a 16 chars and 2 line display
 LiquidCrystal_I2C lcd(0x27,16,2);
 
+// State Machine
+uint8_t * state;
+
+// filename of log file on SD card
 char syslog[13] = "SYSTEM00.CSV";
 
 // count the loop, so we can only log data every X iterations
@@ -72,16 +78,16 @@ void setup()
   }
 
   // config devices
-  PrimaryLight.configure("HPS Light", 2, true);
-  SecondaryLight.configure("LED Lights", 3, true);
-  Fans.configure("Circulation Fans", 6, true);
-  Heater.configure("Heater", 7, true);
-  FanBoost.configure("Fan Overdrive", 8, true);
+  PrimaryLight.configure(2, true);
+  SecondaryLight.configure(3, true);
+  Fans.configure(6, true);
+  Heater.configure(7, true);
+  FanBoost.configure(8, true);
 
   // config sensors
   TempMain.configure("Temperature", 0); // name, compensation
   HumidityMain.configure("Humidity", 0);
-  HumidityAmbient.configure("Ambient Humidity", -5.0); 
+  HumidityAmbient.configure("Ambient Humidity", -5.0);
   TempAmbient.configure("Ambient Temp", -0.5);
   TempControlRoom.configure("Control Room Temp", 0); // name, pin, compensation
 
@@ -91,8 +97,11 @@ void setup()
 
 void loop()
 {
+  // measure execution time for more precise looping
+  unsigned long milStart = millis();
+
   // read STATE from schedule file
-  uint8_t* state = getStateFromSchedule();
+  getStateFromSchedule();
   Environment env = getEnvironmentForState(state[1]);
 
   // queue new Device status
@@ -187,7 +196,18 @@ void loop()
   lcd.print("%)");
 
   // write environment data to CSV
+  if(loopCounter == 0 || loopCounter % LOOPS_PER_LOG == 0)
+  {
+    logSystemStatus();
+    // ensure the loop counter doesn't get huge
+    if(loopCounter = (20 * LOOPS_PER_LOG))
+      loopCounter = 0;
+  }
 
+  // loop timing management
+  loopCounter++;
+  unsigned long execTime =  millis() - milStart;
+  delay((LOOP_INTERVAL_MINUTES * 60000) - execTime);
 }
 
 
@@ -199,8 +219,8 @@ Environment getEnvironmentForState(uint8_t state)
         // night
         return (Environment) {
             24,
-            4,
-            8,
+            2,
+            6,
             2
         };
       break;
@@ -209,9 +229,9 @@ Environment getEnvironmentForState(uint8_t state)
         // sunrise
         return (Environment) {
             24,
+            2,
             4,
-            6,
-            6
+            4
         };
       break;
 
@@ -219,9 +239,9 @@ Environment getEnvironmentForState(uint8_t state)
         // day
         return (Environment) {
             26,
+            1,
             3,
-            6,
-            6
+            3
         };
       break;
 
@@ -229,9 +249,9 @@ Environment getEnvironmentForState(uint8_t state)
         // sunset
         return (Environment) {
             26,
+            3,
             5,
-            7,
-            5
+            3
         };
       break;
     }
@@ -308,8 +328,6 @@ void writeTimestampToFile()
 
 uint8_t* getStateFromSchedule()
 {
-  uint8_t * state;
-
   DateTime now = RTC.now();
   int hour = (int)now.hour();
 
@@ -322,5 +340,32 @@ uint8_t* getStateFromSchedule()
   // move the file cursor to the desired point in the file
   file.seekSet(cursorPos);
   file.read(state, 1);
-  return state;
 }
+
+
+void logSystemStatus()
+{
+  file.writeError = false;
+  if (!file.open(root, syslog, O_CREAT | O_APPEND | O_WRITE)) Serial.print("e: unable to open syslog");
+
+  // Print timestamp
+  writeTimestampToFile();
+
+  // Write current state
+  file.print(state[1]);
+  file.print(", ");
+
+  // Log Sensors first
+  for (byte i = 0; i < COUNT_SENSORS; i++)
+  {
+    file.print(Sensors[i]->read());
+    file.print(", ");
+  }
+
+  file.println("");
+  if (!file.close() || file.writeError)
+  {
+    Serial.println("e: close/write syslog");
+  }
+}
+

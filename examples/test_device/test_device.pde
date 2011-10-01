@@ -6,7 +6,7 @@ Device Relay;
 void setup()
 {
   Serial.begin(9600);
-  Relay.configure("Test device", 13, true);
+  Relay.configure(13, false);
 }
 
 void loop()

@@ -1,7 +1,7 @@
 #include <Wire.h>
 #include <Biodome.h>
 
-LM335TemperatureSensor Temp(2);
+LM335TemperatureSensor Temp(0);
 
 void setup()
 {

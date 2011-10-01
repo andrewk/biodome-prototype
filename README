@@ -1,13 +1,13 @@
 -------------------------------------------------------------------------------
                                  BIODOME
   Environment Monitoring, Logging, Scheduling and Compensation using Arduino
-                   "It's like Lego™ for climate control"
-           Copyright 2010 Andrew Krespanis - http://leftjustified.net/
+  Copyright 2010 Andrew Krespanis - Released under the MIT license
+
 -------------------------------------------------------------------------------
 
 OVERVIEW_______________________________________________________________________
 
-Biodome is a collection of Devices and Sensors, defined and combined in any
+Biodome is a collection of Devices and Sensors, combined in any
 way that suits your needs. Devices can be scheduled to be on or off in one
 hour blocks over a 24 hour schedule, and can be automatically turned on or off
 depending on sensor readings. All sensor data and system events are written to 

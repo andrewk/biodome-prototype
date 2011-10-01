@@ -6,15 +6,14 @@
 // Model representation of a controlled relay with boolean state
 //==========================================================================//
 
-void Device::configure(char * deviceName, int outPin, boolean isControlInverted)
+void Device::configure(int outPin, boolean isControlInverted)
 {
-	char * name = deviceName;
 	pin = outPin;
 	pinMode(pin, OUTPUT);
 	inverted = isControlInverted;
 
 	// set defaults
-  int status = 0;
+  turnOff();gvb
   int queuedStatus = 0;
 }
 

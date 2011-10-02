@@ -13,7 +13,7 @@ void Device::configure(int outPin, boolean isControlInverted)
 	inverted = isControlInverted;
 
 	// set defaults
-  turnOff();gvb
+  turnOff();
   int queuedStatus = 0;
 }
 

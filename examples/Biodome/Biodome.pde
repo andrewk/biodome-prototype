@@ -11,34 +11,15 @@
 #define DAY 3
 #define SUNSET 4
 
+// Configuration
 #define COUNT_SENSORS 5
 #define COUNT_DEVICES 5
 #define LOOP_INTERVAL_MINUTES 5
+#define REPORT_ERRORS_TO_LCD true
 
 // how many times we should iterate through the loop
 // before logging the environment data to CSV
 #define LOOPS_PER_LOG 2
-
-// Real Time Clock object
-RTC_DS1307 RTC;
-
-// SDCard
-Sd2Card card;
-SdVolume volume;
-SdFile root;
-SdFile file;
-
-// set the LCD address to 0x27 for a 16 chars and 2 line display
-LiquidCrystal_I2C lcd(0x27,16,2);
-
-// State Machine Jr
-int state;
-
-// filename of log file on SD card
-char syslog[13] = "SYSTEM00.CSV";
-
-// count the loop, so we can only log data every X iterations
-int loopCounter = 0;
 
 // Devices
 Device PrimaryLight;
@@ -60,6 +41,48 @@ Sensor * Sensors[] = { &TempMain, &HumidityMain, &TempAmbient, &HumidityAmbient,
 DHT dht_ambient(1, DHT22);
 DHT dht_internal(2, DHT22);
 
+// Real Time Clock object
+RTC_DS1307 RTC;
+
+// SDCard
+Sd2Card card;
+SdVolume volume;
+SdFile root;
+SdFile file;
+
+// set the LCD address to 0x27 for a 16 chars and 2 line display
+LiquidCrystal_I2C lcd(0x27,16,2);
+
+// filename of log file on SD card
+char syslog[13] = "SYSTEM00.CSV";
+
+// count the loop, so we can only log data every X iterations
+int loopCounter = 0;
+
+// program has crashed in an unrecoverable way, abort.
+boolean abortExec = false;
+
+
+void fatalError(char * msg)
+{
+  abortExec = true;
+  Serial.print("FATAL: ");
+  Serial.println(msg);
+
+  // shut it down
+  for (byte ic = 0; ic < COUNT_DEVICES; ic++)
+  {
+    Devices[ic]->turnOff();
+  }
+
+  if(REPORT_ERRORS_TO_LCD)
+  {
+    lcd.clear();
+    lcd.print("E:");
+    lcd.print(msg);
+  }
+}
+
 void setup()
 {
   Serial.begin(9600);
@@ -69,15 +92,6 @@ void setup()
   dht_internal.begin();
   lcd.init();
   lcd.backlight();
-
-  // Uncomment following line to sync RTC time to compile time
-  //RTC.adjust(DateTime(__DATE__, __TIME__));
-  if (!RTC.isrunning())
-  {
-      Serial.println("CRITICAL ERROR: RTC is NOT running");
-  }
-
-  initDataAndCreateLogFile();
 
   // config devices
   PrimaryLight.configure(2, true);
@@ -93,18 +107,32 @@ void setup()
   TempAmbient.configure("Ambient Temp", -0.5);
   TempControlRoom.configure("Control Room Temp", 0); // name, pin, compensation
 
+  // Uncomment following line to sync RTC time to compile time
+  //RTC.adjust(DateTime(__DATE__, __TIME__));
+  if (!RTC.isrunning())
+  {
+      fatalError("RTC is NOT running");
+  }
+
+  initDataAndCreateLogFile();
+
   // delay to give DHT sensors time to warm up (datasheet claims up to 30 seconds!)
-  //delay(10000);
+  delay(10000);
 }
 
 void loop()
 {
+  // infinite loop if the program has crashed
+  if(abortExec) return;
+
   // measure execution time for more precise looping
   unsigned long milStart = millis();
 
   // read STATE from schedule file
-  getStateFromSchedule();
+  // system state
+  int state = getStateFromSchedule();
   Environment env = getEnvironmentForState(state);
+  if(abortExec) return;
 
   // queue new Device status
   switch (state)
@@ -200,7 +228,29 @@ void loop()
   // write environment data to CSV
   if(loopCounter == 0 || loopCounter % LOOPS_PER_LOG == 0)
   {
-    logSystemStatus();
+    file.writeError = false;
+    if (!file.open(root, syslog, O_CREAT | O_APPEND | O_WRITE)) Serial.print("e: unable to open syslog");
+
+    // Print timestamp
+    writeTimestampToFile();
+
+    // Write current state
+    file.print(state);
+    file.print(", ");
+
+    // Log Sensors first
+    for (byte i = 0; i < COUNT_SENSORS; i++)
+    {
+      file.print(Sensors[i]->read());
+      file.print(", ");
+    }
+
+    file.println("");
+    if (!file.close() || file.writeError)
+    {
+      Serial.println("e: close/write syslog");
+    }
+
     // ensure the loop counter doesn't get huge
     if(loopCounter = (20 * LOOPS_PER_LOG))
       loopCounter = 0;
@@ -208,8 +258,7 @@ void loop()
 
   // loop timing management
   loopCounter++;
-  unsigned long execTime =  millis() - milStart;
-  delay((LOOP_INTERVAL_MINUTES * 60000) - execTime);
+  delay((LOOP_INTERVAL_MINUTES * 60000) - (millis() - milStart));
 }
 
 
@@ -252,6 +301,13 @@ Environment getEnvironmentForState(int state)
             3
         };
       break;
+
+      case 0: // reading state failed
+        fatalError("Invalid State: 0");
+        break;
+      default : // reading state REALLY messed up
+        fatalError("Invalid State");
+        break;
     }
 }
 
@@ -324,7 +380,7 @@ void writeTimestampToFile()
 }
 
 
-void getStateFromSchedule()
+int getStateFromSchedule()
 {
   uint8_t tmp[1]; // temp store for state
   DateTime now = RTC.now();
@@ -337,7 +393,7 @@ void getStateFromSchedule()
   int cursorPos = (2 * hour) - 1;
   if (!file.open(root, "SCHEDULE.TXT", O_READ))
   {
-     Serial.println("e: open schedule");
+    fatalError("Can't open schedule");
   }
   // move the file cursor to the desired point in the file
   if (file.seekSet(cursorPos))
@@ -347,14 +403,9 @@ void getStateFromSchedule()
   // aaah crap. Formatting error in schedule file?
   else
   {
-    Serial.print("CRITICAL ERROR: Cannot seek to position in schedule file: ");
-    Serial.println(cursorPos);
+    fatalError("Corrupt schedule");
   }
-
-  if(!file.close())
-  {
-    Serial.println("e: open schedule");
-  }
+  file.close();
 
   //-----------
   // Understand byte arrays? I sure don't
@@ -363,33 +414,5 @@ void getStateFromSchedule()
   //char result = (char) tmp[1];
   //Serial.println(result);
   // ...yeah i dunno wtf I give up this works.
-  state = tmp[1] - 48;
+  return tmp[1] - 48;
 }
-
-
-void logSystemStatus()
-{
-  file.writeError = false;
-  if (!file.open(root, syslog, O_CREAT | O_APPEND | O_WRITE)) Serial.print("e: unable to open syslog");
-
-  // Print timestamp
-  writeTimestampToFile();
-
-  // Write current state
-  file.print(state);
-  file.print(", ");
-
-  // Log Sensors first
-  for (byte i = 0; i < COUNT_SENSORS; i++)
-  {
-    file.print(Sensors[i]->read());
-    file.print(", ");
-  }
-
-  file.println("");
-  if (!file.close() || file.writeError)
-  {
-    Serial.println("e: close/write syslog");
-  }
-}
-

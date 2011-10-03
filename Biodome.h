@@ -24,8 +24,8 @@ class Device
 {
 	public:
 		char * name;
-		uint8_t status; // 0=off;1=on
-  	uint8_t queuedStatus; // 0=off;1=on
+		int status; // 0=off;1=on
+  	int queuedStatus; // 0=off;1=on
     int pin;
 		boolean inverted;
 

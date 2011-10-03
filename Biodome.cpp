@@ -14,7 +14,7 @@ void Device::configure(int outPin, boolean isControlInverted)
 
 	// set defaults
   turnOff();
-  int queuedStatus = 0;
+  queuedStatus = 0;
 }
 
 // turn off device via relay
@@ -48,7 +48,7 @@ void Device::nextStatus()
 
 void Sensor::configure(char * sensorName, float measurementCompensation)
 {
-	char * name = sensorName;
+	name = sensorName;
 	_compensation = measurementCompensation;
 }
 

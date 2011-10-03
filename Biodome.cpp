@@ -8,11 +8,11 @@
 
 void Device::configure(int outPin, boolean isControlInverted)
 {
-	pin = outPin;
-	pinMode(pin, OUTPUT);
-	inverted = isControlInverted;
+  pin = outPin;
+  pinMode(pin, OUTPUT);
+  inverted = isControlInverted;
 
-	// set defaults
+  // set defaults
   turnOff();
   queuedStatus = 0;
 }
@@ -21,7 +21,6 @@ void Device::configure(int outPin, boolean isControlInverted)
 void Device::turnOff()
 {
   inverted ? digitalWrite(pin, HIGH) : digitalWrite(pin, LOW);
-  //digitalWrite(pin, LOW);
   status = 0;
 }
 
@@ -30,7 +29,6 @@ void Device::turnOn()
 {
   // support weird relay board from futurlec that switches on with logic 0
   inverted ? digitalWrite(pin, LOW) : digitalWrite(pin, HIGH);
-  //digitalWrite(pin, 1);
   status = 1;
 }
 
@@ -48,8 +46,8 @@ void Device::nextStatus()
 
 void Sensor::configure(char * sensorName, float measurementCompensation)
 {
-	name = sensorName;
-	_compensation = measurementCompensation;
+  name = sensorName;
+  _compensation = measurementCompensation;
 }
 
 
@@ -77,12 +75,11 @@ void TemperatureSensor::update()
   byte iterations = 6;
   for (byte i=0; i <= iterations; i++)
   {
-     int reading = analogRead(pin);
-     float voltage = reading * TEMP_VREF / 1024;
-     sum +=  (voltage - 0.5) * 100;
-     delay(10);
+    int reading = analogRead(pin);
+    float voltage = reading * TEMP_VREF / 1024;
+    sum +=  (voltage - 0.5) * 100;
+    delay(10);
   }
-
   _lastValue = sum / iterations;
 }
 
@@ -93,22 +90,20 @@ void TemperatureSensor::update()
 
 LM335TemperatureSensor::LM335TemperatureSensor(byte uPin)
 {
-	pin = uPin;
+  pin = uPin;
 }
 
 //avarage a temperature and update _lastValue
 void LM335TemperatureSensor::update()
 {
-	float val = 0;
-	float val2 = 0;
-	float deg = 0;
-	float celcius = 0;
+  float val = 0;
+  float val2 = 0;
+  float deg = 0;
+  float celcius = 0;
 
-	val = analogRead(pin); // read value from the sensor
-	val2 = val * 0.00489; // take SENSOR value and multiply it by 4.89mV
-	deg = val2 * 100; // multiply by 100 to get degrees in K
-
-	_lastValue = deg - 273.15; // subtract absolute zero to get degrees celcius
-
+  val = analogRead(pin); // read value from the sensor
+  val2 = val * 0.00489; // take SENSOR value and multiply it by 4.89mV
+  deg = val2 * 100; // multiply by 100 to get degrees in K
+  _lastValue = deg - 273.15; // subtract absolute zero to get degrees celcius
 }
 

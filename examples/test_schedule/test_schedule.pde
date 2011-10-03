@@ -8,6 +8,12 @@
 #include <SdFat.h>
 #include <Biodome.h>
 
+// STATES
+#define NIGHT 1
+#define SUNRISE 2
+#define DAY 3
+#define SUNSET 4
+
 // Real Time Clock object
 RTC_DS1307 RTC;
 
@@ -60,7 +66,6 @@ void setup()
     Serial.println("e: close/write syslog");
   }
 
-
 }
 
 void loop()
@@ -72,19 +77,19 @@ void loop()
   // queue new Device status
   switch (state)
   {
-    case 1: // night
+    case NIGHT: 
       Serial.println("Night");
     break;
 
-    case 2: // sunrise
-       Serial.println("Sunrise");
+    case SUNRISE:
+      Serial.println("Sunrise");
     break;
 
-    case 3: // day
+    case DAY:
       Serial.println("Day");
     break;
 
-    case 4: // sunset
+    case SUNSET:
       Serial.println("Sunset");
     break;
   }
@@ -141,12 +146,13 @@ Environment getEnvironmentForState(uint8_t state)
 
 void getStateFromSchedule()
 {
-  uint8_t tmp[2]; // temp store for state
+  uint8_t tmp[1]; // temp store for state
   DateTime now = RTC.now();
   int hour = (int)now.hour();
 
-  Serial.print("hour: ");
-  Serial.println(hour);
+  //Serial.print("hour: ");
+  //Serial.println(hour);
+
   // 2 chars per line, one for state, one line breakd
   int cursorPos = (2 * hour) - 1;
   if (!file.open(root, "SCHEDULE.TXT", O_READ))
@@ -170,10 +176,11 @@ void getStateFromSchedule()
     Serial.println("e: open schedule");
   }
 
-  Serial.print(tmp[1]);
-  Serial.print(tmp[2]);
-  Serial.println("/");
-  Serial.println((char*) tmp);
-  state = (int) tmp;
- // Serial.println(state);
+  // Understand byte arrays? I sure don't
+
+  //Serial.println(tmp[1]);
+  //char result = (char) tmp[1];
+  //Serial.println(result);
+  // ...yeah i dunno wtf I give up this works.
+  state = tmp[1] - 48;
 }

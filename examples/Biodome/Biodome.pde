@@ -31,8 +31,8 @@ SdFile file;
 // set the LCD address to 0x27 for a 16 chars and 2 line display
 LiquidCrystal_I2C lcd(0x27,16,2);
 
-// State Machine
-uint8_t * state;
+// State Machine Jr
+int state;
 
 // filename of log file on SD card
 char syslog[13] = "SYSTEM00.CSV";
@@ -77,6 +77,8 @@ void setup()
       Serial.println("CRITICAL ERROR: RTC is NOT running");
   }
 
+  initDataAndCreateLogFile();
+
   // config devices
   PrimaryLight.configure(2, true);
   SecondaryLight.configure(3, true);
@@ -102,31 +104,31 @@ void loop()
 
   // read STATE from schedule file
   getStateFromSchedule();
-  Environment env = getEnvironmentForState(state[1]);
+  Environment env = getEnvironmentForState(state);
 
   // queue new Device status
-  switch (state[1])
+  switch (state)
   {
-    case 1: // night
+    case NIGHT: // night
       PrimaryLight.queuedStatus = 0;
       SecondaryLight.queuedStatus = 0;
       lcd.print("Night      ");
 
     break;
 
-    case 2: // sunrise
-       PrimaryLight.queuedStatus = 0;
-       SecondaryLight.queuedStatus = 1;
-       lcd.print("Sunrise    ");
+    case SUNRISE:
+      PrimaryLight.queuedStatus = 0;
+      SecondaryLight.queuedStatus = 1;
+      lcd.print("Sunrise    ");
     break;
 
-    case 3: // day
+    case DAY:
       PrimaryLight.queuedStatus = 1;
       SecondaryLight.queuedStatus = 1;
       lcd.print("Day        ");
     break;
 
-    case 4: // sunset
+    case SUNSET:
       PrimaryLight.queuedStatus = 0;
       SecondaryLight.queuedStatus = 0;
       lcd.print("Sunset     ");
@@ -211,12 +213,11 @@ void loop()
 }
 
 
-Environment getEnvironmentForState(uint8_t state)
+Environment getEnvironmentForState(int state)
  {
     switch (state)
     {
-      case 1:
-        // night
+      case NIGHT:
         return (Environment) {
             24,
             2,
@@ -225,8 +226,7 @@ Environment getEnvironmentForState(uint8_t state)
         };
       break;
 
-      case 2:
-        // sunrise
+      case SUNRISE:
         return (Environment) {
             24,
             2,
@@ -235,8 +235,7 @@ Environment getEnvironmentForState(uint8_t state)
         };
       break;
 
-      case 3:
-        // day
+      case DAY:
         return (Environment) {
             26,
             1,
@@ -245,8 +244,7 @@ Environment getEnvironmentForState(uint8_t state)
         };
       break;
 
-      case 4:
-        // sunset
+      case SUNSET:
         return (Environment) {
             26,
             3,
@@ -258,7 +256,7 @@ Environment getEnvironmentForState(uint8_t state)
 }
 
 
-void createAndOpenLogFile()
+void initDataAndCreateLogFile()
 {
     // initialize the SD card
     if (!card.init()) Serial.println("e:card.init");
@@ -326,20 +324,46 @@ void writeTimestampToFile()
 }
 
 
-uint8_t* getStateFromSchedule()
+void getStateFromSchedule()
 {
+  uint8_t tmp[1]; // temp store for state
   DateTime now = RTC.now();
   int hour = (int)now.hour();
 
+  //Serial.print("hour: ");
+  //Serial.println(hour);
+
   // 2 chars per line, one for state, one line breakd
-  int cursorPos = 2 * (hour-1);
+  int cursorPos = (2 * hour) - 1;
   if (!file.open(root, "SCHEDULE.TXT", O_READ))
   {
      Serial.println("e: open schedule");
   }
   // move the file cursor to the desired point in the file
-  file.seekSet(cursorPos);
-  file.read(state, 1);
+  if (file.seekSet(cursorPos))
+  {
+    file.read(tmp, 2);
+  }
+  // aaah crap. Formatting error in schedule file?
+  else
+  {
+    Serial.print("CRITICAL ERROR: Cannot seek to position in schedule file: ");
+    Serial.println(cursorPos);
+  }
+
+  if(!file.close())
+  {
+    Serial.println("e: open schedule");
+  }
+
+  //-----------
+  // Understand byte arrays? I sure don't
+  //-----------
+  //Serial.println(tmp[1]);
+  //char result = (char) tmp[1];
+  //Serial.println(result);
+  // ...yeah i dunno wtf I give up this works.
+  state = tmp[1] - 48;
 }
 
 
@@ -352,7 +376,7 @@ void logSystemStatus()
   writeTimestampToFile();
 
   // Write current state
-  file.print(state[1]);
+  file.print(state);
   file.print(", ");
 
   // Log Sensors first

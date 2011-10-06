@@ -192,20 +192,25 @@ void loop()
   FanBoost.queuedStatus = 0;
   Heater.queuedStatus = 0;
 
-  // WAY too hot
-  if (TempMain.read() >= env.extremeOver)
+  // temp of zero means DHT22 sensor failed.
+  // dont make temp compensation decisions with a failed sensor
+  if(TempMain.read() != 0)
   {
-    Fans.queuedStatus = 1;
-    FanBoost.queuedStatus = 1;
-  }
-  // too hot
-  else if (TempMain.read() >= env.over)
-  {
-    Fans.queuedStatus = 1;
-  }
-  else if (TempMain.read() >= env.extremeOver)
-  {
-    Heater.queuedStatus = 1;
+    // WAY too hot
+    if (TempMain.read() >= env.extremeOver)
+    {
+      Fans.queuedStatus = 1;
+      FanBoost.queuedStatus = 1;
+    }
+    // too hot
+    else if (TempMain.read() >= env.over)
+    {
+      Fans.queuedStatus = 1;
+    }
+    else if (TempMain.read() >= env.extremeOver)
+    {
+      Heater.queuedStatus = 1;
+    }
   }
 
   // iterate through Devices, enable queued status
@@ -273,54 +278,53 @@ void loop()
 
 
 Environment getEnvironmentForState(int state)
- {
-    switch (state)
-    {
-      case NIGHT:
-        return (Environment) {
-            24,
-            2,
-            6,
-            2
-        };
+{
+  switch (state)
+  {
+    case NIGHT:
+      return (Environment) {
+        24,
+          2,
+          6,
+          2
+      };
       break;
 
-      case SUNRISE:
-        return (Environment) {
-            24,
-            2,
-            4,
-            4
-        };
+    case SUNRISE:
+      return (Environment) {
+        24,
+          2,
+          4,
+          4
+      };
       break;
 
-      case DAY:
-        return (Environment) {
-            26,
-            1,
-            3,
-            3
-        };
+    case DAY:
+      return (Environment) {
+        26,
+          1,
+          3,
+          3
+      };
       break;
 
-      case SUNSET:
-        return (Environment) {
-            26,
-            3,
-            5,
-            3
-        };
+    case SUNSET:
+      return (Environment) {
+        26,
+          3,
+          5,
+          3
+      };
       break;
 
-      case 0: // reading state failed
-        fatalError("Invalid State: 0");
-        break;
-      default : // reading state REALLY messed up
-        fatalError("Invalid State");
-        break;
-    }
+    case 0: // reading state failed
+      fatalError("Invalid State: 0");
+      break;
+    default : // reading state REALLY messed up
+      fatalError("Invalid State");
+      break;
+  }
 }
-
 
 void initDataAndCreateLogFile()
 {

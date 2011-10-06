@@ -104,9 +104,9 @@ void setup()
   // config sensors
   TempMain.configure("Temperature", 0); // name, compensation
   HumidityMain.configure("Humidity", 0);
-  HumidityAmbient.configure("Ambient Humidity", -5.0);
-  TempAmbient.configure("Ambient Temp", -0.5);
-  TempControlRoom.configure("Control Room Temp", 0); // name, pin, compensation
+  HumidityAmbient.configure("Ambient Humidity", -3.0);
+  TempAmbient.configure("Ambient Temp", -0.8);
+  TempControlRoom.configure("Control Room Temp", 1.8); // name, pin, compensation
 
   // Uncomment following line to sync RTC time to compile time
   //RTC.adjust(DateTime(__DATE__, __TIME__));
@@ -173,18 +173,11 @@ void loop()
   }
 
   // populate facade sensors
-  /*
+
   TempMain.updateExternal(dht_internal.readTemperature());
   HumidityMain.updateExternal(dht_internal.readHumidity());
   TempAmbient.updateExternal(dht_ambient.readTemperature());
   HumidityAmbient.updateExternal(dht_ambient.readHumidity());
-  */
-
-  TempMain.updateExternal(28.90);
-  HumidityMain.updateExternal(34.98);
-  TempAmbient.updateExternal(24.21);
-  HumidityAmbient.updateExternal(61.43);
-
 
   // process Device status overrides for Coolers and Heaters
   // set defaults for environmental controllers

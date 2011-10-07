@@ -240,7 +240,8 @@ void loop()
     if (!file.open(root, syslog, O_CREAT | O_APPEND | O_WRITE)) Serial.print("e: unable to open syslog");
 
     // Print timestamp
-    writeTimestampToFile();
+    file.print(now.unixtime());
+    file.print(", ");
 
     // Write current state
     file.print(state);
@@ -340,53 +341,13 @@ void initDataAndCreateLogFile()
 
   if (!file.isOpen())
   {
-    Serial.println("CRITICAL ERROR: Failed to create syslog file");
+    fatalError("Failed to create syslog file");
   }
-  // add column headers
-  file.print("timestamp, ");
-  file.print("time, ");
-  file.print("state, ");
-  for (byte i = 0; i < COUNT_SENSORS; i++)
+  if (!file.close())
   {
-    file.print(Sensors[i]->name);
-    file.print(", ");
-  }
-  for (byte i = 0; i < COUNT_DEVICES; i++)
-  {
-    file.print(Devices[i]->name);
-    file.print(", ");
-  }
-  file.println("");
-  if (!file.close() || file.writeError)
-  {
-    Serial.println("e: close/write syslog");
+    fatalError("close/write syslog");
   }
 }
-
-/**
- * Helper function for inserting both UNIX timestamp and
- * human-readable forms of current time in CSV format
- * uses "file" global var to save 300 bytes in binary size
- */
-void writeTimestampToFile()
-{
-  DateTime now = RTC.now();
-  file.print(now.unixtime());
-  file.print(", ");
-  file.print(now.year(), DEC);
-  file.print("/");
-  file.print(now.month(), DEC);
-  file.print("/");
-  file.print(now.day(), DEC);
-  file.print(" ");
-  file.print(now.hour(), DEC);
-  file.print(":");
-  file.print(now.minute(), DEC);
-  file.print(":");
-  file.print(now.second(), DEC);
-  file.print(", ");
-}
-
 
 int getStateFromSchedule()
 {

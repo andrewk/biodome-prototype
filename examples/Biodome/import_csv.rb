@@ -5,20 +5,18 @@ require "mysql"
 # eg:  import.rb system01.csv system2.csv system3.csv
 
 
-/*
+#
+#CREATE TABLE `log` (
+#  `timestamp` int(11) unsigned NOT NULL,
+#  `state` int(1) NOT NULL,
+#  `temp` float NOT NULL,
+#  `humidity` float NOT NULL,
+#  `ambient_temp` float NOT NULL,
+#  `ambient_humidity` float DEFAULT NULL,
+#  `control_room_temp` float DEFAULT NULL,
+#  PRIMARY KEY (`timestamp`)
+#) ENGINE=InnoDB DEFAULT CHARSET=utf8 
 
-CREATE TABLE `log` (
-  `timestamp` int(11) unsigned NOT NULL,
-  `state` int(1) NOT NULL,
-  `temp` float NOT NULL,
-  `humidity` float NOT NULL,
-  `ambient_temp` float NOT NULL,
-  `ambient_humidity` float DEFAULT NULL,
-  `control_room_temp` float DEFAULT NULL,
-  PRIMARY KEY (`timestamp`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 
-
-*/
 
 #Very strict in its expectations of valid CSV
 begin

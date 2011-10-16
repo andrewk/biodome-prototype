@@ -14,9 +14,9 @@
 // Configuration
 #define COUNT_SENSORS 5
 #define COUNT_DEVICES 5
-#define LOOP_INTERVAL_MINUTES 5
+#define LOOP_INTERVAL_MINUTES 1
 #define REPORT_ERRORS_TO_LCD true
-#define FAN_POWER_DETECTION_PIN 12
+#define FAN_POWER_DETECTION_PIN 13
 
 // how many times we should iterate through the loop
 // before logging the environment data to CSV
@@ -31,7 +31,7 @@ Device FanBoost;
 Device * Devices[] = { &PrimaryLight, &SecondaryLight, &Fans, &Heater, &FanBoost };
 
 // Sensors
-TemperatureSensor TempControlRoom(0);
+LM335TemperatureSensor TempControlRoom(0);
 FacadeSensor TempMain;
 FacadeSensor HumidityMain;
 FacadeSensor TempAmbient;
@@ -39,8 +39,8 @@ FacadeSensor HumidityAmbient;
 Sensor * Sensors[] = { &TempMain, &HumidityMain, &TempAmbient, &HumidityAmbient, &TempControlRoom};
 
 // DHT temp/humidity sensors (DHT lib)
-DHT dht_ambient(1, DHT22);
-DHT dht_internal(2, DHT22);
+DHT dht_internal(8, DHT22);
+DHT dht_ambient(9, DHT22);
 
 // Real Time Clock object
 RTC_DS1307 RTC;
@@ -88,8 +88,6 @@ void setup()
   Serial.begin(9600);
   Wire.begin();
   RTC.begin();
-  dht_ambient.begin();
-  dht_internal.begin();
   lcd.init();
   lcd.backlight();
   pinMode(FAN_POWER_DETECTION_PIN, INPUT);
@@ -106,24 +104,28 @@ void setup()
   HumidityMain.configure("Humidity", 0);
   HumidityAmbient.configure("Ambient Humidity", -3.0);
   TempAmbient.configure("Ambient Temp", -0.8);
-  TempControlRoom.configure("Control Room Temp", 1.8); // name, pin, compensation
+  TempControlRoom.configure("Control Room Temp", 1.8); // name, compensation
 
   // Uncomment following line to sync RTC time to compile time
   //RTC.adjust(DateTime(__DATE__, __TIME__));
   if (!RTC.isrunning())
   {
-      fatalError("RTC is NOT running");
+    fatalError("RTC is NOT running");
   }
 
   initDataAndCreateLogFile();
 
   // delay to give DHT sensors time to warm up (datasheet claims up to 30 seconds!)
-  delay(10000);
+  lcd.print("Loading");
+  for(int i=0; i <= 10; i++) {
+    lcd.print(".");
+    delay(1000);
+  }
 }
 
 void loop()
 {
-  checkFanPower();
+  lcd.clear();
 
   // infinite loop if the program has crashed
   if(abortExec) return;
@@ -173,11 +175,17 @@ void loop()
   }
 
   // populate facade sensors
+  float t1 = dht_internal.readTemperature();
+  TempMain.updateExternal(t1);
 
-  TempMain.updateExternal(dht_internal.readTemperature());
-  HumidityMain.updateExternal(dht_internal.readHumidity());
-  TempAmbient.updateExternal(dht_ambient.readTemperature());
-  HumidityAmbient.updateExternal(dht_ambient.readHumidity());
+  float h1 = dht_internal.readHumidity();
+  HumidityMain.updateExternal(h1);
+
+  float t2 = dht_ambient.readTemperature();
+  TempAmbient.updateExternal(t2);
+
+  float h2 = dht_ambient.readHumidity();
+  HumidityAmbient.updateExternal(h2);
 
   // process Device status overrides for Coolers and Heaters
   // set defaults for environmental controllers
@@ -233,12 +241,12 @@ void loop()
   lcd.print((int)HumidityAmbient.read());
   lcd.print("% ");
 
+
   // write environment data to CSV
   if(loopCounter == 0 || loopCounter % LOOPS_PER_LOG == 0)
   {
     file.writeError = false;
-    if (!file.open(root, syslog, O_CREAT | O_APPEND | O_WRITE)) Serial.print("e: unable to open syslog");
-
+    if (!file.open(root, syslog, O_CREAT | O_APPEND | O_WRITE)) fatalError("open syslog");
     // Print timestamp
     file.print(now.unixtime());
     file.print(", ");
@@ -257,12 +265,11 @@ void loop()
     file.println("");
     if (!file.close() || file.writeError)
     {
-      Serial.println("e: close/write syslog");
+      fatalError("close/write syslog");
     }
 
     // ensure the loop counter doesn't get huge
-    if(loopCounter = (20 * LOOPS_PER_LOG))
-      loopCounter = 0;
+    if(loopCounter = (20 * LOOPS_PER_LOG)) loopCounter = 0;
   }
 
   // loop timing management
@@ -315,13 +322,15 @@ Environment getEnvironmentForState(int state)
       fatalError("Invalid State: 0");
       break;
     default : // reading state REALLY messed up
-      fatalError("Invalid State");
+      fatalError("Cannot read State");
       break;
   }
 }
 
 void initDataAndCreateLogFile()
 {
+  file.writeError = false;
+
   // initialize the SD card
   if (!card.init()) fatalError("card.init");
   if (!volume.init(card)) fatalError("volume.init");
@@ -338,12 +347,23 @@ void initDataAndCreateLogFile()
       break;
     }
   }
-
-  if (!file.isOpen())
+  
+  if (!file.isOpen()) 
   {
-    fatalError("Failed to create syslog file");
+    fatalError("Create syslog");
   }
-  if (!file.close())
+  // add column headers
+  file.print("Timestamp");
+  file.print(", ");
+  file.print("State");
+  file.print(", ");
+  for (byte i = 0; i < COUNT_SENSORS; i++) 
+  {
+    file.print(Sensors[i]->name);
+    file.print(", ");
+  }  
+  file.println("");
+  if (!file.close() || file.writeError)  
   {
     fatalError("close/write syslog");
   }
@@ -384,12 +404,4 @@ int getStateFromSchedule()
   //Serial.println(result);
   // ...yeah i dunno wtf I give up this works.
   return tmp[1] - 48;
-}
-
-void checkFanPower()
-{
-  if(digitalRead(FAN_POWER_DETECTION_PIN) == LOW))
-  {
-    fatalError("Exhaust fan power");
-  }
 }

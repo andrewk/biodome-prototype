@@ -117,6 +117,7 @@ void setup()
 
   // delay to give DHT sensors time to warm up (datasheet claims up to 30 seconds!)
   lcd.print("Loading");
+  lcd.setCursor(0, 1);
   for(int i=0; i <= 10; i++) {
     lcd.print(".");
     delay(1000);
@@ -175,42 +176,35 @@ void loop()
   }
 
   // populate facade sensors
-  float t1 = dht_internal.readTemperature();
-  TempMain.updateExternal(t1);
-
-  float h1 = dht_internal.readHumidity();
-  HumidityMain.updateExternal(h1);
-
-  float t2 = dht_ambient.readTemperature();
-  TempAmbient.updateExternal(t2);
-
-  float h2 = dht_ambient.readHumidity();
-  HumidityAmbient.updateExternal(h2);
+  TempMain.updateExternal(dht_internal.readTemperature());
+  HumidityMain.updateExternal(dht_internal.readHumidity());
+  TempAmbient.updateExternal(dht_ambient.readTemperature());
+  HumidityAmbient.updateExternal(dht_ambient.readHumidity());
 
   // process Device status overrides for Coolers and Heaters
   // set defaults for environmental controllers
-  Fans.queuedStatus = 0;
-  FanBoost.queuedStatus = 0;
-  Heater.queuedStatus = 0;
+  Fans.queuedStatus = STATUS_OFF;
+  FanBoost.queuedStatus = STATUS_OFF;
+  Heater.queuedStatus = STATUS_OFF;
 
   // temp of zero means DHT22 sensor failed.
   // dont make temp compensation decisions with a failed sensor
   if(TempMain.read() != 0)
   {
     // WAY too hot
-    if (TempMain.read() >= env.extremeOver)
+    if (TempMain.read() >= (env.target + env.extremeOver))
     {
-      Fans.queuedStatus = 1;
-      FanBoost.queuedStatus = 1;
+      Fans.queuedStatus = STATUS_ON;
+      FanBoost.queuedStatus = STATUS_ON;
     }
     // too hot
-    else if (TempMain.read() >= env.over)
+    else if (TempMain.read() >= (env.target + env.over))
     {
-      Fans.queuedStatus = 1;
+      Fans.queuedStatus = STATUS_ON;
     }
-    else if (TempMain.read() >= env.extremeOver)
+    else if (TempMain.read() <= (env.target - env.under))
     {
-      Heater.queuedStatus = 1;
+      Heater.queuedStatus = STATUS_ON;
     }
   }
 
@@ -352,6 +346,7 @@ void initDataAndCreateLogFile()
   {
     fatalError("Create syslog");
   }
+  /*
   // add column headers
   file.print("Timestamp");
   file.print(", ");
@@ -363,6 +358,7 @@ void initDataAndCreateLogFile()
     file.print(", ");
   }  
   file.println("");
+  */
   if (!file.close() || file.writeError)  
   {
     fatalError("close/write syslog");

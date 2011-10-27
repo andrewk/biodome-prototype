@@ -14,13 +14,13 @@
 // Configuration
 #define COUNT_SENSORS 5
 #define COUNT_DEVICES 5
-#define LOOP_INTERVAL_MINUTES 1
+#define LOOP_INTERVAL_MINUTES 5
 #define REPORT_ERRORS_TO_LCD true
 #define FAN_POWER_DETECTION_PIN 13
 
 // how many times we should iterate through the loop
 // before logging the environment data to CSV
-#define LOOPS_PER_LOG 2
+#define LOOPS_PER_LOG 1
 
 // Devices
 Device PrimaryLight;
@@ -65,15 +65,16 @@ boolean abortExec = false;
 
 void fatalError(char * msg)
 {
-  abortExec = true;
+  // Removed due to occasional state reads causing complete shutdown.
+  //abortExec = true;
   Serial.print("FATAL: ");
   Serial.println(msg);
 
-  // shut it down
-  for (byte ic = 0; ic < COUNT_DEVICES; ic++)
-  {
-    Devices[ic]->turnOff();
-  }
+  // Removed due to occasional state reads causing complete shutdown.
+  //for (byte ic = 0; ic < COUNT_DEVICES; ic++)
+  //{
+  //  Devices[ic]->turnOff();
+  //}
 
   if(REPORT_ERRORS_TO_LCD)
   {
@@ -137,6 +138,12 @@ void loop()
   // read STATE from schedule file
   // system state
   int state = getStateFromSchedule();
+
+  // sometimes reading state fails.
+  // TODO: move schedule to int[24] which is populated on startup instead of per-loop
+  if(state < 1 || state > 4)
+    int state = getStateFromSchedule();
+
   Environment env = getEnvironmentForState(state);
   if(abortExec) return;
 
@@ -278,37 +285,37 @@ Environment getEnvironmentForState(int state)
   {
     case NIGHT:
       return (Environment) {
-        24,
+        21,
           2,
-          6,
+          4,
           2
       };
       break;
 
     case SUNRISE:
       return (Environment) {
-        24,
+        21,
           2,
           4,
-          4
+          2
       };
       break;
 
     case DAY:
       return (Environment) {
-        26,
-          1,
-          3,
-          3
+        24,
+          2,
+          4,
+          2
       };
       break;
 
     case SUNSET:
       return (Environment) {
-        26,
+        24,
           3,
           5,
-          3
+          2
       };
       break;
 
@@ -341,8 +348,8 @@ void initDataAndCreateLogFile()
       break;
     }
   }
-  
-  if (!file.isOpen()) 
+
+  if (!file.isOpen())
   {
     fatalError("Create syslog");
   }
@@ -352,14 +359,14 @@ void initDataAndCreateLogFile()
   file.print(", ");
   file.print("State");
   file.print(", ");
-  for (byte i = 0; i < COUNT_SENSORS; i++) 
+  for (byte i = 0; i < COUNT_SENSORS; i++)
   {
     file.print(Sensors[i]->name);
     file.print(", ");
-  }  
+  }
   file.println("");
   */
-  if (!file.close() || file.writeError)  
+  if (!file.close() || file.writeError)
   {
     fatalError("close/write syslog");
   }
@@ -371,8 +378,8 @@ int getStateFromSchedule()
   DateTime now = RTC.now();
   int hour = (int)now.hour();
 
-  //Serial.print("hour: ");
-  //Serial.println(hour);
+  if(file.isOpen())
+    file.close();
 
   // 2 chars per line, one for state, one line breakd
   int cursorPos = (2 * hour) - 1;
